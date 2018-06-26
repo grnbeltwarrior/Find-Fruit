@@ -9,13 +9,15 @@ import getopt
 import threading
 import subprocess
 import requests
+import requests.packages.urllib3
+requests.packages.urllib3.disable_warnings()
 
 ip = ""
 ports = ""
 https = False
-timeout = 110
+timeOut = 0.5
 
-vuln_links = ['jmx-console/',
+vuln_links = ['/','jmx-console/',
 'web-console/ServerInfo.jsp',
 'invoker/JMXInvokerServlet',
 'system/console',
@@ -47,7 +49,6 @@ def usage():
 def urlBuilder(http,portColon,port):
 	for path in vuln_links:
 		url = http + '://' + ip + portColon + port + '/' + path
-		print url
 
 def heavy_lifting():
 	global ip
@@ -70,13 +71,20 @@ def heavy_lifting():
 
 		urlBuilder(http,portColon,port)
 
-#		for path in vuln_links:
-#			url = http + '://' + ip + portColon + port + '/' + path
-#			print url
-	url = "https://www.grnbeltwarrior.com"
-	headers = {'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0'}
-	data = requests.get(url, headers)
-	print data.status_code, data.text
+		for path in vuln_links:
+			url = http + '://' + ip + portColon + port + '/' + path
+			headers = {'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0'}
+			try:
+				data = requests.get(url, headers, timeout=timeOut, verify=False)
+				if str(data.status_code) == '200':
+					print "The following URL returned a status of OK: " + url
+					print data.text + '\r\n'
+			except requests.exceptions.Timeout:
+				pass
+				#print "The following URL timed out: " + url #Uncomment these if you want the errors to go to the console.
+			except requests.exceptions.RequestException as e:
+				pass
+				#print "The following error occurred: " + e #Uncomment these if you want the errors to go to the console.
 
 def main():
 	global ip
